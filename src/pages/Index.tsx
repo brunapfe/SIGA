@@ -2,9 +2,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, BookOpen, Users, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
@@ -81,7 +83,7 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full" variant="outline" onClick={() => navigate('/upload')}>
                 Carregar Planilha
               </Button>
             </CardContent>
