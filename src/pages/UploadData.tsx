@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle, Eye, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,37 +32,102 @@ export default function UploadData() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<'students' | 'grades' | null>(null);
+  const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
+  const [detectionDetails, setDetectionDetails] = useState<string>('');
+  const [showForceTypeDialog, setShowForceTypeDialog] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const onDrop = (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
+  const processFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        let jsonData: any[] = [];
+        
+        if (file.name.toLowerCase().endsWith('.csv')) {
+          // Enhanced CSV processing
+          const text = e.target?.result as string;
+          jsonData = parseCSVData(text);
+        } else {
+          // Excel processing
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          
-          setUploadedData(jsonData);
-          detectDataType(jsonData);
-          
-          toast({
-            title: "Planilha carregada",
-            description: `${jsonData.length} registros encontrados`,
-          });
-        } catch (error) {
-          toast({
-            title: "Erro ao processar planilha",
-            description: "Verifique se o arquivo está no formato correto",
-            variant: "destructive",
-          });
+          jsonData = XLSX.utils.sheet_to_json(worksheet);
         }
-      };
+        
+        if (jsonData.length === 0) {
+          throw new Error('Arquivo vazio ou sem dados válidos');
+        }
+        
+        setUploadedData(jsonData);
+        detectDataType(jsonData);
+        
+        toast({
+          title: "Planilha carregada",
+          description: `${jsonData.length} registros encontrados`,
+        });
+      } catch (error) {
+        toast({
+          title: "Erro ao processar planilha",
+          description: error instanceof Error ? error.message : "Verifique se o arquivo está no formato correto",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      reader.readAsText(file, 'UTF-8');
+    } else {
       reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const parseCSVData = (text: string): any[] => {
+    // Try different separators
+    const separators = [',', ';', '\t'];
+    let bestResult: any[] = [];
+    let bestSeparator = ',';
+    
+    for (const separator of separators) {
+      try {
+        const lines = text.trim().split('\n');
+        if (lines.length < 2) continue;
+        
+        const headers = lines[0].split(separator).map(h => h.trim().replace(/["\r]/g, ''));
+        const rows = lines.slice(1).map(line => {
+          const values = line.split(separator).map(v => v.trim().replace(/["\r]/g, ''));
+          const row: any = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+          return row;
+        });
+        
+        // Check if this separator gives better results (more non-empty cells)
+        const nonEmptyCells = rows.reduce((count, row) => {
+          return count + Object.values(row).filter(v => v && String(v).trim()).length;
+        }, 0);
+        
+        if (nonEmptyCells > bestResult.reduce((count, row) => {
+          return count + Object.values(row).filter(v => v && String(v).trim()).length;
+        }, 0)) {
+          bestResult = rows;
+          bestSeparator = separator;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+    
+    return bestResult;
+  };
+
+  const onDrop = (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      processFile(file);
     }
   };
 
@@ -70,19 +135,90 @@ export default function UploadData() {
     if (data.length === 0) return;
     
     const firstRow = data[0];
-    const keys = Object.keys(firstRow).map(k => k.toLowerCase());
+    const columns = Object.keys(firstRow);
+    const normalizedKeys = columns.map(k => k.toLowerCase().trim());
     
-    if (keys.includes('name') && keys.includes('student_id')) {
-      setDataType('students');
-    } else if (keys.includes('grade') && keys.includes('assessment_type')) {
-      setDataType('grades');
+    setDetectedColumns(columns);
+    
+    // Enhanced detection with Portuguese support
+    const studentKeywords = [
+      'name', 'nome', 'student_name', 'nome_aluno',
+      'student_id', 'matricula', 'matrícula', 'id_aluno', 'codigo_aluno',
+      'email', 'e-mail', 'student_email',
+      'course', 'curso'
+    ];
+    
+    const gradeKeywords = [
+      'grade', 'nota', 'score', 'pontuacao', 'pontuação',
+      'student_id', 'matricula', 'matrícula', 'id_aluno',
+      'assessment_type', 'tipo', 'tipo_avaliacao', 'tipo_avaliação',
+      'assessment_name', 'avaliacao', 'avaliação', 'nome_avaliacao',
+      'max_grade', 'nota_maxima', 'nota_máxima', 'pontuacao_maxima'
+    ];
+    
+    // Check for student data indicators
+    const hasStudentName = normalizedKeys.some(key => 
+      ['name', 'nome', 'student_name', 'nome_aluno'].includes(key)
+    );
+    const hasStudentId = normalizedKeys.some(key => 
+      ['student_id', 'matricula', 'matrícula', 'id_aluno', 'codigo_aluno'].includes(key)
+    );
+    
+    // Check for grade data indicators  
+    const hasGrade = normalizedKeys.some(key => 
+      ['grade', 'nota', 'score', 'pontuacao', 'pontuação'].includes(key)
+    );
+    const hasAssessmentType = normalizedKeys.some(key => 
+      ['assessment_type', 'tipo', 'tipo_avaliacao', 'tipo_avaliação'].includes(key)
+    );
+    
+    let detectedType: 'students' | 'grades' | null = null;
+    let details = '';
+    
+    // More flexible detection logic
+    if ((hasStudentName || hasStudentId) && !hasGrade) {
+      detectedType = 'students';
+      details = `Detectado como ALUNOS. Colunas encontradas: ${columns.join(', ')}`;
+      if (hasStudentName && hasStudentId) {
+        details += ' ✓ Nome e matrícula encontrados';
+      } else if (hasStudentName) {
+        details += ' ✓ Nome encontrado (matrícula opcional)';
+      } else {
+        details += ' ✓ Matrícula encontrada (nome opcional)';
+      }
+    } else if (hasGrade && hasStudentId) {
+      detectedType = 'grades';
+      details = `Detectado como NOTAS. Colunas encontradas: ${columns.join(', ')}`;
+      details += ' ✓ Nota e matrícula encontrados';
+      if (hasAssessmentType) {
+        details += ' ✓ Tipo de avaliação encontrado';
+      }
     } else {
+      details = `Formato não reconhecido automaticamente. Colunas encontradas: ${columns.join(', ')}. `;
+      details += 'Para ALUNOS: precisa de "nome" ou "matricula". ';
+      details += 'Para NOTAS: precisa de "nota" e "matricula".';
+    }
+    
+    setDataType(detectedType);
+    setDetectionDetails(details);
+    
+    if (!detectedType) {
       toast({
-        title: "Formato não reconhecido",
-        description: "A planilha deve conter colunas específicas para alunos ou notas",
+        title: "Formato não reconhecido automaticamente",
+        description: "Verifique as colunas ou force o tipo de dados",
         variant: "destructive",
       });
     }
+  };
+
+  const forceDataType = (type: 'students' | 'grades') => {
+    setDataType(type);
+    setShowForceTypeDialog(false);
+    setDetectionDetails(`Tipo forçado para ${type === 'students' ? 'ALUNOS' : 'NOTAS'}. Colunas: ${detectedColumns.join(', ')}`);
+    toast({
+      title: `Tipo definido como ${type === 'students' ? 'Alunos' : 'Notas'}`,
+      description: "Verifique se os dados estão corretos antes de salvar",
+    });
   };
 
   const processStudents = async (subjectId: string) => {
@@ -245,7 +381,7 @@ export default function UploadData() {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {dataType === 'students' ? (
+              {dataType === 'students' ? (
                   <><CheckCircle className="h-5 w-5 text-green-600" /> Dados de Alunos Detectados</>
                 ) : dataType === 'grades' ? (
                   <><CheckCircle className="h-5 w-5 text-green-600" /> Dados de Notas Detectados</>
@@ -255,6 +391,12 @@ export default function UploadData() {
               </CardTitle>
               <CardDescription>
                 {uploadedData.length} registros encontrados
+                {detectionDetails && (
+                  <div className="mt-2 p-2 bg-muted rounded text-sm">
+                    <Eye className="h-4 w-4 inline mr-1" />
+                    {detectionDetails}
+                  </div>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -288,44 +430,89 @@ export default function UploadData() {
                 )}
               </div>
 
-              {dataType && (
-                <div className="mt-6 flex gap-4">
-                  {dataType === 'students' && (
-                    <Button 
-                      onClick={() => {
-                        setPendingAction('students');
-                        setShowConfirmDialog(true);
-                      }} 
-                      disabled={isProcessing}
-                    >
-                      Salvar Alunos
-                    </Button>
-                  )}
-                  {dataType === 'grades' && (
-                    <Button 
-                      onClick={() => {
-                        setPendingAction('grades');
-                        setShowConfirmDialog(true);
-                      }} 
-                      disabled={isProcessing}
-                    >
-                      Salvar Notas
-                    </Button>
-                  )}
+              <div className="mt-6 flex gap-4 flex-wrap">
+                {dataType === 'students' && (
                   <Button 
-                    variant="outline" 
                     onClick={() => {
-                      setUploadedData([]);
-                      setDataType(null);
-                    }}
+                      setPendingAction('students');
+                      setShowConfirmDialog(true);
+                    }} 
+                    disabled={isProcessing}
                   >
-                    Cancelar
+                    Salvar Alunos
                   </Button>
-                </div>
-              )}
+                )}
+                {dataType === 'grades' && (
+                  <Button 
+                    onClick={() => {
+                      setPendingAction('grades');
+                      setShowConfirmDialog(true);
+                    }} 
+                    disabled={isProcessing}
+                  >
+                    Salvar Notas
+                  </Button>
+                )}
+                
+                {!dataType && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowForceTypeDialog(true)}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Forçar Tipo
+                  </Button>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setUploadedData([]);
+                    setDataType(null);
+                    setDetectedColumns([]);
+                    setDetectionDetails('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Force Type Dialog */}
+        <Dialog open={showForceTypeDialog} onOpenChange={setShowForceTypeDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Forçar Tipo de Dados</DialogTitle>
+              <DialogDescription>
+                O sistema não conseguiu detectar automaticamente o tipo de dados.
+                Selecione manualmente o que esta planilha contém:
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Colunas detectadas: {detectedColumns.join(', ')}
+              </p>
+              <div className="flex gap-4">
+                <Button onClick={() => forceDataType('students')}>
+                  Dados de Alunos
+                </Button>
+                <Button onClick={() => forceDataType('grades')}>
+                  Dados de Notas
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowForceTypeDialog(false)}
+              >
+                Cancelar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Confirmation Dialog */}
         <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
@@ -377,11 +564,14 @@ export default function UploadData() {
                 A planilha deve conter as seguintes colunas:
               </p>
               <ul className="text-sm space-y-1 ml-4">
-                <li>• <strong>name</strong> (ou Nome): Nome completo do aluno</li>
-                <li>• <strong>student_id</strong> (ou Matricula): Número de matrícula</li>
-                <li>• <strong>email</strong> (ou E-mail): E-mail do aluno (opcional)</li>
-                <li>• <strong>course</strong> (ou Curso): Curso do aluno (opcional)</li>
+                <li>• <strong>name/nome/Nome</strong>: Nome completo do aluno</li>
+                <li>• <strong>student_id/matricula/Matricula</strong>: Número de matrícula</li>
+                <li>• <strong>email/E-mail</strong>: E-mail do aluno (opcional)</li>
+                <li>• <strong>course/curso/Curso</strong>: Curso do aluno (opcional)</li>
               </ul>
+              <p className="text-xs text-muted-foreground mt-2">
+                <strong>Nota:</strong> Pelo menos uma das colunas principais (nome ou matrícula) é necessária.
+              </p>
             </div>
             
             <div>
@@ -390,13 +580,19 @@ export default function UploadData() {
                 A planilha deve conter as seguintes colunas:
               </p>
               <ul className="text-sm space-y-1 ml-4">
-                <li>• <strong>student_id</strong> (ou Matricula): Número de matrícula do aluno</li>
-                <li>• <strong>assessment_type</strong> (ou Tipo): Tipo de avaliação (Prova, Trabalho, etc.)</li>
-                <li>• <strong>assessment_name</strong> (ou Avaliacao): Nome da avaliação</li>
-                <li>• <strong>grade</strong> (ou Nota): Nota obtida</li>
-                <li>• <strong>max_grade</strong> (ou Nota_Maxima): Nota máxima (opcional, padrão: 10)</li>
-                <li>• <strong>date_assigned</strong> (ou Data): Data da avaliação (opcional)</li>
+                <li>• <strong>student_id/matricula/Matricula</strong>: Número de matrícula do aluno</li>
+                <li>• <strong>grade/nota/Nota</strong>: Nota obtida</li>
+                <li>• <strong>assessment_type/tipo/Tipo</strong>: Tipo de avaliação (opcional)</li>
+                <li>• <strong>assessment_name/avaliacao/Avaliacao</strong>: Nome da avaliação (opcional)</li>
+                <li>• <strong>max_grade/nota_maxima/Nota_Maxima</strong>: Nota máxima (opcional, padrão: 10)</li>
+                <li>• <strong>date_assigned/data/Data</strong>: Data da avaliação (opcional)</li>
               </ul>
+              <p className="text-xs text-muted-foreground mt-2">
+                <strong>Nota:</strong> As colunas "matrícula" e "nota" são obrigatórias para notas.
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                <strong>CSV:</strong> Suporte automático para separadores: vírgula (,), ponto e vírgula (;) e tab.
+              </p>
             </div>
           </CardContent>
         </Card>
