@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -179,7 +180,6 @@ const Subjects = () => {
           <div>
             <h1 className="text-3xl font-bold">Minhas Disciplinas</h1>
             <p className="text-muted-foreground">Gerencie suas disciplinas e anos letivos</p>
-            </div>
           </div>
           
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -314,7 +314,6 @@ const Subjects = () => {
             )}
            </CardContent>
         </Card>
-      </div>
       </div>
     </div>
   );
