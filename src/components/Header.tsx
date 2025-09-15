@@ -21,6 +21,7 @@ const Header = () => {
     { label: 'Início', icon: Home, path: '/' },
     { label: 'Disciplinas', icon: BookOpen, path: '/subjects' },
     { label: 'Alunos', icon: Users, path: '/students' },
+    { label: 'Cursos', icon: BookOpen, path: '/courses' },
     { label: 'Carregar Planilha', icon: Upload, path: '/upload' },
     { label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
   ];

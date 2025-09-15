@@ -251,6 +251,44 @@ export default function UploadData() {
         throw new Error('Nenhum aluno válido encontrado. Verifique se as colunas Nome e Matricula estão preenchidas.');
       }
 
+      // Process courses - create any new courses mentioned in the data
+      const coursesInData = [...new Set(validStudents
+        .map(student => student.course)
+        .filter(course => course && course.trim() !== '')
+      )];
+
+      if (coursesInData.length > 0) {
+        // Check which courses already exist
+        const { data: existingCourses } = await supabase
+          .from('courses')
+          .select('name')
+          .in('name', coursesInData);
+
+        const existingCourseNames = existingCourses?.map(c => c.name) || [];
+        const newCourses = coursesInData.filter(name => !existingCourseNames.includes(name));
+
+        // Create new courses
+        if (newCourses.length > 0) {
+          const { error: courseError } = await supabase
+            .from('courses')
+            .insert(newCourses.map(name => ({ name })));
+
+          if (courseError) {
+            console.error('Error creating courses:', courseError);
+            toast({
+              title: "Aviso",
+              description: "Alguns cursos não puderam ser criados automaticamente",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Cursos criados",
+              description: `${newCourses.length} novos cursos foram criados automaticamente`,
+            });
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from('students')
         .insert(validStudents.map(student => ({

@@ -11,6 +11,8 @@ import NotFound from "./pages/NotFound";
 import UploadData from "./pages/UploadData";
 import Subjects from "./pages/Subjects";
 import Students from "./pages/Students";
+import Courses from "./pages/Courses";
+import CourseDetails from "./pages/CourseDetails";
 import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
@@ -43,6 +45,16 @@ const App = () => {
               <Route path="/students" element={
                 <ProtectedRoute>
                   <Students />
+                </ProtectedRoute>
+              } />
+              <Route path="/courses" element={
+                <ProtectedRoute>
+                  <Courses />
+                </ProtectedRoute>
+              } />
+              <Route path="/courses/:courseId/students" element={
+                <ProtectedRoute>
+                  <CourseDetails />
                 </ProtectedRoute>
               } />
               <Route path="/dashboard" element={

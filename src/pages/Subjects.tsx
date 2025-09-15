@@ -19,6 +19,17 @@ interface Subject {
   semester: number;
   year: number;
   created_at: string;
+  course?: {
+    id: string;
+    name: string;
+    code?: string;
+  };
+}
+
+interface Course {
+  id: string;
+  name: string;
+  code?: string;
 }
 
 const Subjects = () => {
@@ -26,6 +37,7 @@ const Subjects = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
@@ -33,12 +45,14 @@ const Subjects = () => {
     name: '',
     code: '',
     semester: '',
-    year: new Date().getFullYear().toString()
+    year: new Date().getFullYear().toString(),
+    course_id: ''
   });
 
   useEffect(() => {
     if (user) {
       fetchSubjects();
+      fetchCourses();
     }
   }, [user]);
 
@@ -46,7 +60,14 @@ const Subjects = () => {
     try {
       const { data, error } = await supabase
         .from('subjects')
-        .select('*')
+        .select(`
+          *,
+          course:courses(
+            id,
+            name,
+            code
+          )
+        `)
         .eq('professor_id', user?.id)
         .order('year', { ascending: false })
         .order('semester', { ascending: false });
@@ -61,6 +82,20 @@ const Subjects = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setCourses(data || []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
     }
   };
 
@@ -82,6 +117,7 @@ const Subjects = () => {
         code: formData.code,
         semester: parseInt(formData.semester),
         year: parseInt(formData.year),
+        course_id: formData.course_id || null,
         professor_id: user?.id
       };
 
@@ -108,7 +144,7 @@ const Subjects = () => {
         });
       }
 
-      setFormData({ name: '', code: '', semester: '', year: new Date().getFullYear().toString() });
+      setFormData({ name: '', code: '', semester: '', year: new Date().getFullYear().toString(), course_id: '' });
       setEditingSubject(null);
       setIsDialogOpen(false);
       fetchSubjects();
@@ -127,7 +163,8 @@ const Subjects = () => {
       name: subject.name,
       code: subject.code,
       semester: subject.semester.toString(),
-      year: subject.year.toString()
+      year: subject.year.toString(),
+      course_id: subject.course?.id || ''
     });
     setIsDialogOpen(true);
   };
@@ -157,7 +194,7 @@ const Subjects = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', code: '', semester: '', year: new Date().getFullYear().toString() });
+    setFormData({ name: '', code: '', semester: '', year: new Date().getFullYear().toString(), course_id: '' });
     setEditingSubject(null);
   };
 
@@ -222,6 +259,22 @@ const Subjects = () => {
                     required
                   />
                 </div>
+                <div>
+                  <Label htmlFor="course">Curso (opcional)</Label>
+                  <select
+                    id="course"
+                    value={formData.course_id}
+                    onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
+                    className="w-full p-2 border border-input rounded-md bg-background"
+                  >
+                    <option value="">Selecione um curso</option>
+                    {courses.map(course => (
+                      <option key={course.id} value={course.id}>
+                        {course.name} {course.code ? `(${course.code})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="semester">Semestre</Label>
@@ -285,6 +338,7 @@ const Subjects = () => {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Código</TableHead>
+                    <TableHead>Curso</TableHead>
                     <TableHead>Semestre</TableHead>
                     <TableHead>Ano</TableHead>
                     <TableHead>Ações</TableHead>
@@ -295,6 +349,16 @@ const Subjects = () => {
                     <TableRow key={subject.id}>
                       <TableCell className="font-medium">{subject.name}</TableCell>
                       <TableCell>{subject.code}</TableCell>
+                      <TableCell>
+                        {subject.course ? (
+                          <span>
+                            {subject.course.name}
+                            {subject.course.code && ` (${subject.course.code})`}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>{subject.semester}º</TableCell>
                       <TableCell>{subject.year}</TableCell>
                       <TableCell>
