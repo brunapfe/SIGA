@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      courses: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       grades: {
         Row: {
           assessment_name: string
@@ -54,6 +78,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      professors: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -123,9 +171,11 @@ export type Database = {
       subjects: {
         Row: {
           code: string
+          course_id: string | null
           created_at: string
           id: string
           name: string
+          professor_db_id: string | null
           professor_id: string
           semester: number
           updated_at: string
@@ -133,9 +183,11 @@ export type Database = {
         }
         Insert: {
           code: string
+          course_id?: string | null
           created_at?: string
           id?: string
           name: string
+          professor_db_id?: string | null
           professor_id: string
           semester: number
           updated_at?: string
@@ -143,15 +195,31 @@ export type Database = {
         }
         Update: {
           code?: string
+          course_id?: string | null
           created_at?: string
           id?: string
           name?: string
+          professor_db_id?: string | null
           professor_id?: string
           semester?: number
           updated_at?: string
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "subjects_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subjects_professor_db_id_fkey"
+            columns: ["professor_db_id"]
+            isOneToOne: false
+            referencedRelation: "professors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subjects_professor_id_fkey"
             columns: ["professor_id"]
