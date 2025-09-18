@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { BookOpen, Users, TrendingUp, Award } from 'lucide-react';
+import { BookOpen, Users, TrendingUp, Award, BarChart3 } from 'lucide-react';
 import Header from '@/components/Header';
 
 interface DashboardData {
@@ -182,18 +182,20 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-12">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Análise de desempenho acadêmico</p>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
+              Dashboard Analytics
+            </h1>
+            <p className="text-lg text-muted-foreground mt-2">Análise completa de desempenho acadêmico</p>
           </div>
           
-          <div className="w-64">
+          <div className="w-72">
             <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-card border-2 border-primary/20 hover:border-primary/40 transition-colors">
                 <SelectValue placeholder="Filtrar por disciplina" />
               </SelectTrigger>
               <SelectContent>
@@ -209,122 +211,210 @@ const Dashboard = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Alunos</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <Card className="card-enhanced group">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total de Alunos</CardTitle>
+              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.totalStudents}</div>
+              <div className="text-3xl font-bold text-primary">{dashboardData.totalStudents}</div>
+              <p className="text-xs text-muted-foreground mt-1">estudantes cadastrados</p>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Disciplinas</CardTitle>
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
+          <Card className="card-enhanced group">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Disciplinas</CardTitle>
+              <div className="p-2 rounded-lg bg-chart-2/10 group-hover:bg-chart-2/20 transition-colors">
+                <BookOpen className="h-5 w-5" style={{color: 'hsl(var(--chart-2))'}} />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.totalSubjects}</div>
+              <div className="text-3xl font-bold" style={{color: 'hsl(var(--chart-2))'}}>
+                {dashboardData.totalSubjects}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">matérias ativas</p>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Média Geral</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <Card className="card-enhanced group">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Média Geral</CardTitle>
+              <div className="p-2 rounded-lg bg-chart-3/10 group-hover:bg-chart-3/20 transition-colors">
+                <TrendingUp className="h-5 w-5" style={{color: 'hsl(var(--chart-3))'}} />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.averageGrade}</div>
-              <p className="text-xs text-muted-foreground">de 10 pontos</p>
+              <div className="text-3xl font-bold" style={{color: 'hsl(var(--chart-3))'}}>
+                {dashboardData.averageGrade}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">de 10 pontos</p>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Performance</CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
+          <Card className="card-enhanced group">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Performance</CardTitle>
+              <div className="p-2 rounded-lg bg-chart-4/10 group-hover:bg-chart-4/20 transition-colors">
+                <Award className="h-5 w-5" style={{color: 'hsl(var(--chart-4))'}} />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold" style={{color: 'hsl(var(--chart-4))'}}>
                 {dashboardData.averageGrade >= 7 ? 'Boa' : dashboardData.averageGrade >= 5 ? 'Regular' : 'Baixa'}
               </div>
-              <p className="text-xs text-muted-foreground">classificação geral</p>
+              <p className="text-xs text-muted-foreground mt-1">classificação geral</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Distribuição de Notas</CardTitle>
-              <CardDescription>Quantidade de notas por faixa</CardDescription>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          <Card className="chart-container">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <div className="p-1 rounded bg-primary/20">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                </div>
+                Distribuição de Notas
+              </CardTitle>
+              <CardDescription className="text-base">Quantidade de notas por faixa de desempenho</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dashboardData.gradeDistribution}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="range" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" />
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={dashboardData.gradeDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis 
+                    dataKey="range" 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <YAxis 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--popover))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-elegant)'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="hsl(var(--chart-1))" 
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance por Disciplina</CardTitle>
-              <CardDescription>Média de notas por disciplina</CardDescription>
+          <Card className="chart-container">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <div className="p-1 rounded bg-chart-2/20">
+                  <TrendingUp className="h-4 w-4" style={{color: 'hsl(var(--chart-2))'}} />
+                </div>
+                Performance por Disciplina
+              </CardTitle>
+              <CardDescription className="text-base">Média de notas por disciplina</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dashboardData.performanceBySubject}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis domain={[0, 10]} />
-                  <Tooltip />
-                  <Bar dataKey="average" fill="hsl(var(--chart-2))" />
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={dashboardData.performanceBySubject} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <YAxis 
+                    domain={[0, 10]} 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--popover))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-elegant)'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="average" 
+                    fill="hsl(var(--chart-2))" 
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tendência por Tipo de Avaliação</CardTitle>
-              <CardDescription>Média por tipo de avaliação</CardDescription>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="chart-container">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <div className="p-1 rounded bg-chart-3/20">
+                  <TrendingUp className="h-4 w-4" style={{color: 'hsl(var(--chart-3))'}} />
+                </div>
+                Tendência por Tipo de Avaliação
+              </CardTitle>
+              <CardDescription className="text-base">Evolução da média por tipo de avaliação</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={dashboardData.gradesTrend}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="assessment" />
-                  <YAxis domain={[0, 10]} />
-                  <Tooltip />
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={dashboardData.gradesTrend} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis 
+                    dataKey="assessment" 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <YAxis 
+                    domain={[0, 10]} 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--popover))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-elegant)'
+                    }}
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="average" 
                     stroke="hsl(var(--chart-3))" 
-                    strokeWidth={2}
+                    strokeWidth={3}
+                    dot={{ fill: 'hsl(var(--chart-3))', strokeWidth: 2, r: 6 }}
+                    activeDot={{ r: 8, fill: 'hsl(var(--chart-3))' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Distribuição Visual de Notas</CardTitle>
-              <CardDescription>Proporção de notas por faixa</CardDescription>
+          <Card className="chart-container">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <div className="p-1 rounded bg-chart-4/20">
+                  <div className="h-4 w-4 rounded-full" style={{backgroundColor: 'hsl(var(--chart-4))'}} />
+                </div>
+                Distribuição Visual de Notas
+              </CardTitle>
+              <CardDescription className="text-base">Proporção visual de notas por faixa</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
                   <Pie
                     data={dashboardData.gradeDistribution}
@@ -332,15 +422,24 @@ const Dashboard = () => {
                     cy="50%"
                     labelLine={false}
                     label={({ range, percent }) => `${range}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="count"
+                    stroke="hsl(var(--background))"
+                    strokeWidth={2}
                   >
                     {dashboardData.gradeDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={`hsl(var(--chart-${(index % 5) + 1}))`} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--popover))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-elegant)'
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>

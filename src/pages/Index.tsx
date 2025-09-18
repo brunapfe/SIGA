@@ -26,46 +26,56 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Dashboard do Professor</h2>
-          <p className="text-muted-foreground">
-            Gerencie suas disciplinas e acompanhe o desempenho dos seus alunos
+      <main className="container mx-auto px-4 py-12">
+        <div className="text-center mb-12">
+          <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Dashboard do Professor
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Gerencie suas disciplinas e acompanhe o desempenho dos seus alunos com análises avançadas
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BookOpen className="h-5 w-5" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <Card className="card-enhanced group">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-3 text-xl">
+                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <BookOpen className="h-6 w-6 text-primary" />
+                </div>
                 <span>Minhas Disciplinas</span>
               </CardTitle>
-              <CardDescription>
-                Gerencie suas disciplinas e anos letivos
+              <CardDescription className="text-base">
+                Gerencie suas disciplinas e anos letivos com facilidade
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" onClick={() => navigate('/subjects')}>Ver Disciplinas</Button>
+              <Button className="w-full btn-gradient text-white" onClick={() => navigate('/subjects')}>
+                Ver Disciplinas
+              </Button>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
+          <Card className="card-enhanced group">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-3 text-xl">
+                <div className="p-2 rounded-lg bg-chart-2/10 group-hover:bg-chart-2/20 transition-colors">
+                  <Users className="h-6 w-6" style={{color: 'hsl(var(--chart-2))'}} />
+                </div>
                 <span>Alunos</span>
               </CardTitle>
-              <CardDescription>
-                Visualize e gerencie dados dos alunos
+              <CardDescription className="text-base">
+                Visualize e gerencie dados dos alunos eficientemente
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Button className="w-full" onClick={() => navigate('/students')}>Gerenciar Alunos</Button>
+              <div className="space-y-3">
+                <Button className="w-full btn-gradient text-white" onClick={() => navigate('/students')}>
+                  Gerenciar Alunos
+                </Button>
                 <Button className="w-full" variant="outline" onClick={() => navigate('/upload')}>
                   Carregar Planilha
                 </Button>
@@ -73,18 +83,20 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5" />
+          <Card className="card-enhanced group">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-3 text-xl">
+                <div className="p-2 rounded-lg bg-chart-3/10 group-hover:bg-chart-3/20 transition-colors">
+                  <BarChart3 className="h-6 w-6" style={{color: 'hsl(var(--chart-3))'}} />
+                </div>
                 <span>Análises</span>
               </CardTitle>
-              <CardDescription>
-                Relatórios e métricas de desempenho
+              <CardDescription className="text-base">
+                Relatórios e métricas detalhadas de desempenho
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" onClick={() => navigate('/dashboard')}>
+              <Button className="w-full btn-gradient text-white" onClick={() => navigate('/dashboard')}>
                 Ver Dashboard
               </Button>
             </CardContent>
