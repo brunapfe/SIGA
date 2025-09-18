@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import { BookOpen, Users, TrendingUp, Award, BarChart3 } from 'lucide-react';
 import Header from '@/components/Header';
 
@@ -421,23 +421,38 @@ const Dashboard = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ range, percent }) => `${range}: ${(percent * 100).toFixed(0)}%`}
+                    label={({ range, percent }) => `${range}: ${(percent * 100).toFixed(2)}%`}
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="count"
-                    stroke="hsl(var(--background))"
-                    strokeWidth={2}
                   >
                     {dashboardData.gradeDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={`hsl(var(--chart-${(index % 5) + 1}))`} />
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--popover))', 
+                      color: 'hsl(var(--popover-foreground))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
                       boxShadow: 'var(--shadow-elegant)'
+                    }}
+                    formatter={(value: number, name: string) => [
+                      `${value} ${value === 1 ? 'aluno' : 'alunos'}`, 
+                      'Quantidade'
+                    ]}
+                    labelFormatter={(label: string) => `Faixa de nota: ${label}`}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    formatter={(value: string, entry: any) => 
+                      `${value} (${entry.payload.count} ${entry.payload.count === 1 ? 'aluno' : 'alunos'})`
+                    }
+                    wrapperStyle={{
+                      color: 'hsl(var(--foreground))',
+                      fontSize: '14px'
                     }}
                   />
                 </PieChart>
