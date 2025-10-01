@@ -18,7 +18,9 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn, signUp } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const { signIn, signUp, resetPassword } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -93,6 +95,33 @@ const Auth = () => {
     setLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (!resetEmail) {
+      setError('Por favor, insira seu email');
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await resetPassword(resetEmail);
+    
+    if (error) {
+      setError(error.message);
+    } else {
+      toast({
+        title: 'Email enviado!',
+        description: 'Verifique sua caixa de entrada. O link expira em 15 minutos.',
+      });
+      setShowForgotPassword(false);
+      setResetEmail('');
+    }
+    
+    setLoading(false);
+  };
+
   const passwordValidation = validatePassword(password);
 
   return (
@@ -105,6 +134,45 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {showForgotPassword ? (
+            <div className="space-y-4">
+              <Button
+                variant="ghost"
+                onClick={() => setShowForgotPassword(false)}
+                className="mb-2"
+              >
+                ← Voltar para login
+              </Button>
+              
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="professor@universidade.edu"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={loading}
+                >
+                  {loading ? 'Enviando...' : 'Enviar link de redefinição'}
+                </Button>
+              </form>
+            </div>
+          ) : (
           <Tabs defaultValue="login" className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
@@ -164,6 +232,15 @@ const Auth = () => {
                   disabled={loading}
                 >
                   {loading ? 'Entrando...' : 'Entrar'}
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full"
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  Esqueci minha senha
                 </Button>
               </form>
             </TabsContent>
@@ -250,6 +327,7 @@ const Auth = () => {
               </form>
             </TabsContent>
           </Tabs>
+          )}
         </CardContent>
       </Card>
     </div>
