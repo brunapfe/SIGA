@@ -75,19 +75,6 @@ const Auth = () => {
       return;
     }
 
-    // Verificar se o email já existe
-    const { data: existingUser } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('email', email)
-      .maybeSingle();
-    
-    if (existingUser) {
-      setError('Este email já está cadastrado. Tente fazer login.');
-      setLoading(false);
-      return;
-    }
-
     const { error } = await signUp(email, password, fullName);
     
     if (error) {
