@@ -75,6 +75,18 @@ const Auth = () => {
       return;
     }
 
+    // Verificar se o email já existe usando função segura do banco
+    const { data: emailExists, error: checkError } = await supabase
+      .rpc('email_exists', { check_email: email });
+    
+    if (checkError) {
+      console.error('Erro ao verificar email:', checkError);
+    } else if (emailExists) {
+      setError('Este email já está cadastrado. Tente fazer login.');
+      setLoading(false);
+      return;
+    }
+
     const { error } = await signUp(email, password, fullName);
     
     if (error) {
