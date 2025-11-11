@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, FileText } from 'lucide-react';
 import Header from '@/components/Header';
 
 interface Student {
@@ -34,6 +34,15 @@ interface Subject {
   year: number;
 }
 
+interface Grade {
+  id: string;
+  assessment_type: string;
+  assessment_name: string;
+  grade: number;
+  max_grade: number;
+  date_assigned: string | null;
+}
+
 const Students = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -49,6 +58,17 @@ const Students = () => {
     student_id: '',
     course: '',
     subject_id: ''
+  });
+  const [viewingGrades, setViewingGrades] = useState<Student | null>(null);
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [loadingGrades, setLoadingGrades] = useState(false);
+  const [isAddGradeOpen, setIsAddGradeOpen] = useState(false);
+  const [gradeFormData, setGradeFormData] = useState({
+    assessment_type: '',
+    assessment_name: '',
+    grade: '',
+    max_grade: '10',
+    date_assigned: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
@@ -195,6 +215,107 @@ const Students = () => {
   const resetForm = () => {
     setFormData({ name: '', email: '', student_id: '', course: '', subject_id: '' });
     setEditingStudent(null);
+  };
+
+  const handleViewGrades = async (student: Student) => {
+    setViewingGrades(student);
+    setLoadingGrades(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('grades')
+        .select('*')
+        .eq('student_id', student.id)
+        .order('date_assigned', { ascending: false });
+
+      if (error) throw error;
+      setGrades(data || []);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar notas",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingGrades(false);
+    }
+  };
+
+  const handleAddGrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!viewingGrades || !gradeFormData.assessment_type || !gradeFormData.assessment_name || !gradeFormData.grade) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('grades')
+        .insert([{
+          student_id: viewingGrades.id,
+          assessment_type: gradeFormData.assessment_type,
+          assessment_name: gradeFormData.assessment_name,
+          grade: parseFloat(gradeFormData.grade),
+          max_grade: parseFloat(gradeFormData.max_grade),
+          date_assigned: gradeFormData.date_assigned || null
+        }]);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Sucesso",
+        description: "Nota lançada com sucesso"
+      });
+      
+      setGradeFormData({
+        assessment_type: '',
+        assessment_name: '',
+        grade: '',
+        max_grade: '10',
+        date_assigned: new Date().toISOString().split('T')[0]
+      });
+      setIsAddGradeOpen(false);
+      handleViewGrades(viewingGrades);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao lançar nota",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteGrade = async (gradeId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta nota?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('grades')
+        .delete()
+        .eq('id', gradeId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Sucesso",
+        description: "Nota excluída com sucesso"
+      });
+      
+      if (viewingGrades) {
+        handleViewGrades(viewingGrades);
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir nota",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
@@ -352,6 +473,7 @@ const Students = () => {
                       <TableHead>Email</TableHead>
                       <TableHead>Curso</TableHead>
                       <TableHead>Disciplina</TableHead>
+                      <TableHead>Notas</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -364,6 +486,11 @@ const Students = () => {
                         <TableCell>{student.course || '-'}</TableCell>
                         <TableCell>
                           {student.subject ? `${student.subject.code} - ${student.subject.name}` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="sm" onClick={() => handleViewGrades(student)}>
+                            <FileText className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
@@ -383,6 +510,151 @@ const Students = () => {
             </CardContent>
           </Card>
         )}
+
+        <Dialog open={!!viewingGrades} onOpenChange={(open) => !open && setViewingGrades(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Notas de {viewingGrades?.name}</DialogTitle>
+              <DialogDescription>
+                Matrícula: {viewingGrades?.student_id} | Disciplina: {viewingGrades?.subject?.code}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <Dialog open={isAddGradeOpen} onOpenChange={setIsAddGradeOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Lançar Nota
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Lançar Nova Nota</DialogTitle>
+                    <DialogDescription>
+                      Adicione uma nova nota para {viewingGrades?.name}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAddGrade} className="space-y-4">
+                    <div>
+                      <Label htmlFor="assessment_type">Tipo de Avaliação</Label>
+                      <Select value={gradeFormData.assessment_type} onValueChange={(value) => setGradeFormData({ ...gradeFormData, assessment_type: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Prova">Prova</SelectItem>
+                          <SelectItem value="Trabalho">Trabalho</SelectItem>
+                          <SelectItem value="Projeto">Projeto</SelectItem>
+                          <SelectItem value="Seminário">Seminário</SelectItem>
+                          <SelectItem value="Atividade">Atividade</SelectItem>
+                          <SelectItem value="Outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="assessment_name">Nome da Avaliação</Label>
+                      <Input
+                        id="assessment_name"
+                        value={gradeFormData.assessment_name}
+                        onChange={(e) => setGradeFormData({ ...gradeFormData, assessment_name: e.target.value })}
+                        placeholder="Ex: Prova 1, Trabalho Final, etc."
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="grade">Nota Obtida</Label>
+                        <Input
+                          id="grade"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={gradeFormData.grade}
+                          onChange={(e) => setGradeFormData({ ...gradeFormData, grade: e.target.value })}
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="max_grade">Nota Máxima</Label>
+                        <Input
+                          id="max_grade"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={gradeFormData.max_grade}
+                          onChange={(e) => setGradeFormData({ ...gradeFormData, max_grade: e.target.value })}
+                          placeholder="10.00"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="date_assigned">Data da Avaliação</Label>
+                      <Input
+                        id="date_assigned"
+                        type="date"
+                        value={gradeFormData.date_assigned}
+                        onChange={(e) => setGradeFormData({ ...gradeFormData, date_assigned: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={() => setIsAddGradeOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit">
+                        Lançar Nota
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              {loadingGrades ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Carregando notas...</p>
+                </div>
+              ) : grades.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Nenhuma nota lançada ainda</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Avaliação</TableHead>
+                      <TableHead>Nota</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {grades.map((grade) => (
+                      <TableRow key={grade.id}>
+                        <TableCell>{grade.assessment_type}</TableCell>
+                        <TableCell>{grade.assessment_name}</TableCell>
+                        <TableCell>
+                          {grade.grade}/{grade.max_grade}
+                        </TableCell>
+                        <TableCell>
+                          {grade.date_assigned ? new Date(grade.date_assigned).toLocaleDateString('pt-BR') : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="sm" onClick={() => handleDeleteGrade(grade.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
