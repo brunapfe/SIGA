@@ -20,6 +20,7 @@ interface Subject {
   year: number;
   created_at: string;
   student_count?: number;
+  course_id?: string;
   course?: {
     id: string;
     name: string;
@@ -222,10 +223,11 @@ const Subjects = () => {
     setLoadingStudents(true);
     
     try {
-      const { data, error } = await supabase
+      // Buscar alunos do curso da disciplina
+      const { data, error } = await (supabase as any)
         .from('students')
         .select('*')
-        .eq('subject_id', subject.id)
+        .eq('course_id', subject.course_id)
         .order('name');
 
       if (error) throw error;

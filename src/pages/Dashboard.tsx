@@ -70,32 +70,24 @@ const Dashboard = () => {
         return;
       }
 
-      // Fetch students count
-      const { count: studentsCount, error: studentsError } = await supabase
+      // Fetch students count (agora os alunos estão vinculados aos cursos)
+      const { count: studentsCount, error: studentsError } = await (supabase as any)
         .from('students')
-        .select('*', { count: 'exact', head: true })
-        .in('subject_id', subjectFilter);
+        .select('*', { count: 'exact', head: true });
 
       if (studentsError) throw studentsError;
 
-      // Fetch grades with student and subject info
-      const { data: gradesData, error: gradesError } = await supabase
+      // Fetch grades with student info (simplificado sem joins profundos)
+      const { data: gradesData, error: gradesError } = await (supabase as any)
         .from('grades')
-        .select(`
-          *,
-          students!inner(
-            subject_id,
-            name,
-            subjects!inner(name, code, professor_id)
-          )
-        `)
-        .eq('students.subjects.professor_id', user?.id)
-        .in('students.subject_id', subjectFilter);
+        .select('*, students!inner(id, name, student_id, course_id)')
+        .order('date_assigned', { ascending: false })
+        .limit(100);
 
       if (gradesError) throw gradesError;
 
-      // Calculate statistics
-      const grades = gradesData || [];
+      // Calculate statistics - type cast to any[] to avoid deep type issues
+      const grades = (gradesData || []) as any[];
       const totalGrades = grades.length;
       const averageGrade = totalGrades > 0 ? 
         grades.reduce((sum, grade) => sum + Number(grade.grade), 0) / totalGrades : 0;
@@ -132,10 +124,10 @@ const Dashboard = () => {
         return acc;
       }, {} as Record<string, number[]>);
 
-      const gradesTrend = Object.entries(assessmentGroups).map(([type, gradesList]) => ({
+      const gradesTrend = Object.entries(assessmentGroups).map(([type, gradesList]: [string, any]) => ({
         assessment: type,
-        average: gradesList.length > 0 ? 
-          gradesList.reduce((sum, grade) => sum + grade, 0) / gradesList.length : 0
+        average: (gradesList as number[]).length > 0 ? 
+          (gradesList as number[]).reduce((sum, grade) => sum + grade, 0) / (gradesList as number[]).length : 0
       }));
 
       setDashboardData({
