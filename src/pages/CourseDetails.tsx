@@ -179,7 +179,7 @@ const CourseDetails = () => {
   };
 
   const handleCreateSubject = async () => {
-    if (!newSubject.name || !newSubject.code || !newSubject.professor_id) {
+    if (!newSubject.name || !newSubject.code) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -199,7 +199,7 @@ const CourseDetails = () => {
           year: newSubject.year,
           semester: newSubject.semester,
           professor_id: user?.id,
-          professor_db_id: newSubject.professor_id,
+          professor_db_id: newSubject.professor_id || null,
           course_id: courseId
         });
 
@@ -510,13 +510,13 @@ const CourseDetails = () => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="professor">Professor</Label>
+                      <Label htmlFor="professor">Professor (opcional)</Label>
                       <Select 
                         value={newSubject.professor_id} 
                         onValueChange={(value) => setNewSubject({ ...newSubject, professor_id: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione um professor" />
+                          <SelectValue placeholder="Selecione um professor (opcional)" />
                         </SelectTrigger>
                         <SelectContent>
                           {professors.map((professor) => (
