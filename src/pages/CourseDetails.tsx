@@ -4,10 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import { ArrowLeft, Users, GraduationCap, Mail, User } from "lucide-react";
+import { ArrowLeft, Users, GraduationCap, Mail, User, Plus, Link2, Trash2 } from "lucide-react";
 
 interface Student {
   id: string;
@@ -27,12 +31,45 @@ interface Course {
   created_at: string;
 }
 
+interface Subject {
+  id: string;
+  name: string;
+  code: string;
+  year: number;
+  semester: number;
+  professor_id: string;
+  course_id: string | null;
+}
+
+interface Professor {
+  id: string;
+  name: string;
+  email: string | null;
+}
+
 const CourseDetails = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [availableSubjects, setAvailableSubjects] = useState<Subject[]>([]);
+  const [professors, setProfessors] = useState<Professor[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Dialog states
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
+  
+  // New subject form
+  const [newSubject, setNewSubject] = useState({
+    name: "",
+    code: "",
+    year: 1,
+    semester: 1,
+    professor_id: ""
+  });
 
   useEffect(() => {
     if (courseId) {
@@ -60,8 +97,39 @@ const CourseDetails = () => {
         .order('name');
 
       if (studentsError) throw studentsError;
-
       setStudents(studentsData || []);
+
+      // Fetch subjects linked to this course
+      const { data: subjectsData, error: subjectsError } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('course_id', courseId)
+        .order('year', { ascending: true })
+        .order('semester', { ascending: true });
+
+      if (subjectsError) throw subjectsError;
+      setSubjects(subjectsData || []);
+
+      // Fetch all available subjects (not linked or user's subjects)
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: allSubjectsData, error: allSubjectsError } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('professor_id', user?.id)
+        .order('name');
+
+      if (allSubjectsError) throw allSubjectsError;
+      setAvailableSubjects(allSubjectsData || []);
+
+      // Fetch professors for the dropdown
+      const { data: professorsData, error: professorsError } = await supabase
+        .from('professors')
+        .select('*')
+        .order('name');
+
+      if (professorsError) throw professorsError;
+      setProfessors(professorsData || []);
+
     } catch (error) {
       console.error('Error fetching course details:', error);
       toast({
@@ -71,6 +139,118 @@ const CourseDetails = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLinkSubject = async () => {
+    if (!selectedSubjectId) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma disciplina",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('subjects')
+        .update({ course_id: courseId })
+        .eq('id', selectedSubjectId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Disciplina vinculada ao curso",
+      });
+
+      setIsLinkDialogOpen(false);
+      setSelectedSubjectId("");
+      fetchCourseDetails();
+    } catch (error) {
+      console.error('Error linking subject:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível vincular a disciplina",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateSubject = async () => {
+    if (!newSubject.name || !newSubject.code || !newSubject.professor_id) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('subjects')
+        .insert({
+          name: newSubject.name,
+          code: newSubject.code,
+          year: newSubject.year,
+          semester: newSubject.semester,
+          professor_id: user?.id,
+          professor_db_id: newSubject.professor_id,
+          course_id: courseId
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Disciplina criada e vinculada ao curso",
+      });
+
+      setIsCreateDialogOpen(false);
+      setNewSubject({
+        name: "",
+        code: "",
+        year: 1,
+        semester: 1,
+        professor_id: ""
+      });
+      fetchCourseDetails();
+    } catch (error) {
+      console.error('Error creating subject:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar a disciplina",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnlinkSubject = async (subjectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('subjects')
+        .update({ course_id: null })
+        .eq('id', subjectId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Disciplina desvinculada do curso",
+      });
+
+      fetchCourseDetails();
+    } catch (error) {
+      console.error('Error unlinking subject:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível desvincular a disciplina",
+        variant: "destructive",
+      });
     }
   };
 
@@ -134,6 +314,197 @@ const CourseDetails = () => {
           Curso criado em {new Date(course.created_at).toLocaleDateString('pt-BR')}
         </p>
       </div>
+
+      {/* Disciplinas Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Disciplinas do Curso</CardTitle>
+              <CardDescription>
+                Gerencie as disciplinas vinculadas a este curso
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Link2 className="mr-2 h-4 w-4" />
+                    Vincular Disciplina
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Vincular Disciplina Existente</DialogTitle>
+                    <DialogDescription>
+                      Selecione uma disciplina já criada para vincular a este curso
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="subject">Disciplina</Label>
+                      <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma disciplina" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableSubjects
+                            .filter(s => !s.course_id || s.course_id === courseId)
+                            .map((subject) => (
+                              <SelectItem key={subject.id} value={subject.id}>
+                                {subject.name} ({subject.code})
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleLinkSubject}>Vincular</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Disciplina
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Nova Disciplina</DialogTitle>
+                    <DialogDescription>
+                      Crie uma nova disciplina e vincule-a diretamente a este curso
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nome da Disciplina</Label>
+                      <Input
+                        id="name"
+                        value={newSubject.name}
+                        onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
+                        placeholder="Ex: Cálculo I"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Código</Label>
+                      <Input
+                        id="code"
+                        value={newSubject.code}
+                        onChange={(e) => setNewSubject({ ...newSubject, code: e.target.value })}
+                        placeholder="Ex: MAT101"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="year">Ano</Label>
+                        <Select 
+                          value={newSubject.year.toString()} 
+                          onValueChange={(value) => setNewSubject({ ...newSubject, year: parseInt(value) })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5].map((year) => (
+                              <SelectItem key={year} value={year.toString()}>
+                                {year}º Ano
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="semester">Semestre</Label>
+                        <Select 
+                          value={newSubject.semester.toString()} 
+                          onValueChange={(value) => setNewSubject({ ...newSubject, semester: parseInt(value) })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1º Semestre</SelectItem>
+                            <SelectItem value="2">2º Semestre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="professor">Professor</Label>
+                      <Select 
+                        value={newSubject.professor_id} 
+                        onValueChange={(value) => setNewSubject({ ...newSubject, professor_id: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um professor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {professors.map((professor) => (
+                            <SelectItem key={professor.id} value={professor.id}>
+                              {professor.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleCreateSubject}>Criar e Vincular</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {subjects.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhuma disciplina vinculada a este curso ainda.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Ano</TableHead>
+                  <TableHead>Semestre</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {subjects.map((subject) => (
+                  <TableRow key={subject.id}>
+                    <TableCell className="font-medium">{subject.name}</TableCell>
+                    <TableCell>{subject.code}</TableCell>
+                    <TableCell>{subject.year}º Ano</TableCell>
+                    <TableCell>{subject.semester}º Semestre</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUnlinkSubject(subject.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {students.length === 0 ? (
         <Card>
