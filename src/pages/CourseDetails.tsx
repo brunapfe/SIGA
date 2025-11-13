@@ -14,21 +14,16 @@ interface Student {
   name: string;
   email?: string;
   student_id: string;
-  course?: string;
+  course_id: string;
   created_at: string;
-  subject: {
-    id: string;
-    name: string;
-    code: string;
-    semester: number;
-    year: number;
-  };
 }
 
 interface Course {
   id: string;
   name: string;
-  code?: string;
+  code: string;
+  total_semesters: number;
+  start_date: string;
   created_at: string;
 }
 
@@ -48,7 +43,7 @@ const CourseDetails = () => {
   const fetchCourseDetails = async () => {
     try {
       // Fetch course details
-      const { data: courseData, error: courseError } = await (supabase as any)
+      const { data: courseData, error: courseError} = await (supabase as any)
         .from('courses')
         .select('*')
         .eq('id', courseId)
@@ -57,21 +52,11 @@ const CourseDetails = () => {
       if (courseError) throw courseError;
       setCourse(courseData);
 
-      // Fetch students in this course (via subjects)
+      // Fetch students in this course
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
-        .select(`
-          *,
-          subject:subjects!inner(
-            id,
-            name,
-            code,
-            semester,
-            year,
-            course_id
-          )
-        `)
-        .eq('subjects.course_id', courseId)
+        .select('*')
+        .eq('course_id', courseId)
         .order('name');
 
       if (studentsError) throw studentsError;
@@ -118,18 +103,7 @@ const CourseDetails = () => {
     );
   }
 
-  // Group students by subject
-  const studentsBySubject = students.reduce((acc, student) => {
-    const subjectKey = `${student.subject.name} (${student.subject.code})`;
-    if (!acc[subjectKey]) {
-      acc[subjectKey] = {
-        subject: student.subject,
-        students: []
-      };
-    }
-    acc[subjectKey].students.push(student);
-    return acc;
-  }, {} as Record<string, { subject: any, students: Student[] }>);
+  const totalStudents = students.length;
 
   return (
     <div className="container mx-auto p-6">
@@ -148,9 +122,7 @@ const CourseDetails = () => {
         <div className="flex items-center gap-4 mb-4">
           <div>
             <h1 className="text-3xl font-bold">{course.name}</h1>
-            {course.code && (
-              <p className="text-muted-foreground">Código: {course.code}</p>
-            )}
+            <p className="text-muted-foreground">Código: {course.code}</p>
           </div>
           <Badge variant="secondary" className="flex items-center gap-1">
             <Users className="h-4 w-4" />
@@ -168,7 +140,7 @@ const CourseDetails = () => {
           <CardHeader>
             <CardTitle>Nenhum aluno encontrado</CardTitle>
             <CardDescription>
-              Ainda não há alunos matriculados em disciplinas deste curso.
+              Ainda não há alunos matriculados neste curso.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -185,30 +157,48 @@ const CourseDetails = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(studentsBySubject).map(([subjectKey, data]) => (
-            <Card key={subjectKey}>
+        <>
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Alunos</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalStudents}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Código do Curso</CardTitle>
+                  <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{course.code}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5" />
-                  {data.subject.name}
-                </CardTitle>
+                <CardTitle>Alunos Matriculados</CardTitle>
                 <CardDescription>
-                  {data.subject.code} • {data.subject.semester}º Semestre • {data.subject.year}
+                  Lista de alunos matriculados neste curso
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
                       <TableHead>Matrícula</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Data de Cadastro</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.students.map((student) => (
+                    {students.map((student) => (
                       <TableRow key={student.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
@@ -224,11 +214,8 @@ const CourseDetails = () => {
                               {student.email}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground">-</span>
+                            '-'
                           )}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(student.created_at).toLocaleDateString('pt-BR')}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -236,8 +223,8 @@ const CourseDetails = () => {
                 </Table>
               </CardContent>
             </Card>
-          ))}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

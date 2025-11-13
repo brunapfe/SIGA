@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,20 +19,18 @@ interface Student {
   name: string;
   email: string;
   student_id: string;
-  course: string;
-  subject_id: string;
-  subject?: {
+  course_id: string;
+  course?: {
+    id: string;
     name: string;
     code: string;
   };
 }
 
-interface Subject {
+interface Course {
   id: string;
   name: string;
   code: string;
-  semester: number;
-  year: number;
 }
 
 interface Grade {
@@ -48,7 +47,7 @@ const Students = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -56,8 +55,7 @@ const Students = () => {
     name: '',
     email: '',
     student_id: '',
-    course: '',
-    subject_id: ''
+    course_id: ''
   });
   const [viewingGrades, setViewingGrades] = useState<Student | null>(null);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -80,35 +78,27 @@ const Students = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch subjects
-      const { data: subjectsData, error: subjectsError } = await supabase
-        .from('subjects')
+      // Fetch courses
+      const { data: coursesData, error: coursesError } = await supabase
+        .from('courses')
         .select('*')
-        .eq('professor_id', user?.id)
-        .order('year', { ascending: false })
-        .order('semester', { ascending: false });
+        .order('name');
 
-      if (subjectsError) throw subjectsError;
-      setSubjects(subjectsData || []);
+      if (coursesError) throw coursesError;
+      setCourses(coursesData || []);
 
-      // Fetch students with subject information
+      // Fetch students with course information
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select(`
           *,
-          subjects!inner(name, code, professor_id)
+          course:courses!inner(id, name, code)
         `)
-        .eq('subjects.professor_id', user?.id)
         .order('name');
 
       if (studentsError) throw studentsError;
       
-      const studentsWithSubjects = studentsData?.map(student => ({
-        ...student,
-        subject: student.subjects
-      })) || [];
-
-      setStudents(studentsWithSubjects);
+      setStudents(studentsData || []);
     } catch (error) {
       toast({
         title: "Erro",
@@ -123,10 +113,10 @@ const Students = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.student_id || !formData.subject_id) {
+    if (!formData.name || !formData.student_id || !formData.course_id) {
       toast({
         title: "Erro",
-        description: "Nome, matrícula e disciplina são obrigatórios",
+        description: "Nome, matrícula e curso são obrigatórios",
         variant: "destructive"
       });
       return;
@@ -137,8 +127,7 @@ const Students = () => {
         name: formData.name,
         email: formData.email || null,
         student_id: formData.student_id,
-        course: formData.course || null,
-        subject_id: formData.subject_id
+        course_id: formData.course_id
       };
 
       if (editingStudent) {
@@ -164,7 +153,7 @@ const Students = () => {
         });
       }
 
-      setFormData({ name: '', email: '', student_id: '', course: '', subject_id: '' });
+      setFormData({ name: '', email: '', student_id: '', course_id: '' });
       setEditingStudent(null);
       setIsDialogOpen(false);
       fetchData();
@@ -183,8 +172,7 @@ const Students = () => {
       name: student.name,
       email: student.email || '',
       student_id: student.student_id,
-      course: student.course || '',
-      subject_id: student.subject_id
+      course_id: student.course_id
     });
     setIsDialogOpen(true);
   };
@@ -214,7 +202,7 @@ const Students = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', student_id: '', course: '', subject_id: '' });
+    setFormData({ name: '', email: '', student_id: '', course_id: '' });
     setEditingStudent(null);
   };
 
@@ -442,24 +430,15 @@ const Students = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="course">Curso (opcional)</Label>
-                    <Input
-                      id="course"
-                      value={formData.course}
-                      onChange={(e) => setFormData({ ...formData, course: e.target.value })}
-                      placeholder="Nome do curso"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="subject">Disciplina</Label>
-                    <Select value={formData.subject_id} onValueChange={(value) => setFormData({ ...formData, subject_id: value })}>
+                    <Label htmlFor="course">Curso</Label>
+                    <Select value={formData.course_id} onValueChange={(value) => setFormData({ ...formData, course_id: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma disciplina" />
+                        <SelectValue placeholder="Selecione um curso" />
                       </SelectTrigger>
                       <SelectContent>
-                        {subjects.map((subject) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.code} - {subject.name} ({subject.year}/{subject.semester})
+                        {courses.map((course) => (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.code} - {course.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -479,12 +458,12 @@ const Students = () => {
           </div>
         </div>
 
-        {subjects.length === 0 ? (
+        {courses.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
-              <p className="text-muted-foreground mb-4">Você precisa cadastrar pelo menos uma disciplina antes de adicionar alunos</p>
-              <Button onClick={() => navigate('/subjects')}>
-                Cadastrar Disciplinas
+              <p className="text-muted-foreground mb-4">Você precisa cadastrar pelo menos um curso antes de adicionar alunos</p>
+              <Button onClick={() => navigate('/courses')}>
+                Cadastrar Cursos
               </Button>
             </CardContent>
           </Card>
@@ -519,7 +498,6 @@ const Students = () => {
                       <TableHead>Matrícula</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Curso</TableHead>
-                      <TableHead>Disciplina</TableHead>
                       <TableHead>Notas</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
@@ -530,9 +508,10 @@ const Students = () => {
                         <TableCell className="font-medium">{student.name}</TableCell>
                         <TableCell>{student.student_id}</TableCell>
                         <TableCell>{student.email || '-'}</TableCell>
-                        <TableCell>{student.course || '-'}</TableCell>
                         <TableCell>
-                          {student.subject ? `${student.subject.code} - ${student.subject.name}` : '-'}
+                          <Badge variant="outline">
+                            {student.course?.code || 'N/A'} - {student.course?.name || 'Sem curso'}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Button variant="outline" size="sm" onClick={() => handleViewGrades(student)}>
@@ -563,7 +542,7 @@ const Students = () => {
             <DialogHeader>
               <DialogTitle>Notas de {viewingGrades?.name}</DialogTitle>
               <DialogDescription>
-                Matrícula: {viewingGrades?.student_id} | Disciplina: {viewingGrades?.subject?.code}
+                Matrícula: {viewingGrades?.student_id}
               </DialogDescription>
             </DialogHeader>
 

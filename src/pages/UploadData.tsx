@@ -14,7 +14,7 @@ interface StudentData {
   name: string;
   email: string;
   student_id: string;
-  course: string;
+  course: string; // Course name or code to link student to course
 }
 
 interface GradeData {
@@ -229,17 +229,6 @@ export default function UploadData() {
   const processStudents = async () => {
     setIsProcessing(true);
     try {
-      // Get user's subjects to save students to the first available subject
-      const { data: subjects } = await supabase
-        .from('subjects')
-        .select('id')
-        .eq('professor_id', user?.id)
-        .limit(1);
-
-      if (!subjects || subjects.length === 0) {
-        throw new Error('Você precisa criar uma disciplina primeiro');
-      }
-
       const studentsToInsert: StudentData[] = uploadedData.map(row => ({
         name: String(row.Nome || row.Name || row.name || '').trim(),
         email: String(row['E-mail'] || row.Email || row.email || '').trim(),
@@ -256,50 +245,33 @@ export default function UploadData() {
         throw new Error('Nenhum aluno válido encontrado. Verifique se as colunas Nome e Matricula estão preenchidas.');
       }
 
-      // Process courses - create any new courses mentioned in the data
-      const coursesInData = [...new Set(validStudents
-        .map(student => student.course)
-        .filter(course => course && course.trim() !== '')
-      )];
-
-      if (coursesInData.length > 0) {
-        // Check which courses already exist
-        const { data: existingCourses } = await (supabase as any)
-          .from('courses')
-          .select('name')
-          .in('name', coursesInData);
-
-        const existingCourseNames = existingCourses?.map(c => c.name) || [];
-        const newCourses = coursesInData.filter(name => !existingCourseNames.includes(name));
-
-        // Create new courses
-        if (newCourses.length > 0) {
-          const { error: courseError } = await (supabase as any)
-            .from('courses')
-            .insert(newCourses.map(name => ({ name })));
-
-          if (courseError) {
-            console.error('Error creating courses:', courseError);
-            toast({
-              title: "Aviso",
-              description: "Alguns cursos não puderam ser criados automaticamente",
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Cursos criados",
-              description: `${newCourses.length} novos cursos foram criados automaticamente`,
-            });
-          }
-        }
+      // Validate that all students have a course
+      const missingCourse = validStudents.some(s => !s.course || s.course.trim() === '');
+      if (missingCourse) {
+        throw new Error('Todos os alunos devem ter um curso informado (nome ou código)');
       }
+
+      // Get all courses to match by name or code
+      const { data: allCourses } = await supabase
+        .from('courses')
+        .select('id, name, code');
+
+      if (!allCourses || allCourses.length === 0) {
+        throw new Error('Nenhum curso cadastrado. Cadastre os cursos antes de importar alunos.');
+      }
+
+      // Create a map of course names/codes to IDs
+      const courseMap = new Map<string, string>();
+      allCourses.forEach(course => {
+        if (course.name) courseMap.set(course.name.toLowerCase().trim(), course.id);
+        if (course.code) courseMap.set(course.code.toLowerCase().trim(), course.id);
+      });
 
       // Check which students already exist
       const studentIds = validStudents.map(s => s.student_id);
       const { data: existingStudents } = await supabase
         .from('students')
         .select('student_id, id, name, email')
-        .eq('subject_id', subjects[0].id)
         .in('student_id', studentIds);
 
       const existingStudentMap = new Map(existingStudents?.map(s => [s.student_id, s]) || []);
@@ -309,31 +281,56 @@ export default function UploadData() {
 
       let insertedCount = 0;
       let updatedCount = 0;
+      const warnings: string[] = [];
 
       // Insert new students
       if (newStudents.length > 0) {
-        const { error: insertError } = await supabase
-          .from('students')
-          .insert(newStudents.map(student => ({
-            ...student,
-            subject_id: subjects[0].id
-          })));
+        const studentsWithCourseId = newStudents.map(student => {
+          const courseKey = student.course.toLowerCase().trim();
+          const courseId = courseMap.get(courseKey);
+          
+          if (!courseId) {
+            warnings.push(`Curso não encontrado para aluno ${student.name}: ${student.course}`);
+            return null;
+          }
 
-        if (insertError) throw insertError;
-        insertedCount = newStudents.length;
+          return {
+            name: student.name,
+            email: student.email || null,
+            student_id: student.student_id,
+            course_id: courseId
+          };
+        }).filter(Boolean);
+
+        if (studentsWithCourseId.length > 0) {
+          const { error: insertError } = await supabase
+            .from('students')
+            .insert(studentsWithCourseId);
+
+          if (insertError) throw insertError;
+          insertedCount = studentsWithCourseId.length;
+        }
       }
 
       // Update existing students
       if (studentsToUpdate.length > 0) {
         for (const student of studentsToUpdate) {
           const existingStudent = existingStudentMap.get(student.student_id);
+          const courseKey = student.course.toLowerCase().trim();
+          const courseId = courseMap.get(courseKey);
+          
+          if (!courseId) {
+            warnings.push(`Curso não encontrado para aluno ${student.name}: ${student.course}`);
+            continue;
+          }
+          
           if (existingStudent) {
             const { error: updateError } = await supabase
               .from('students')
               .update({
                 name: student.name,
-                email: student.email,
-                course: student.course
+                email: student.email || null,
+                course_id: courseId
               })
               .eq('id', existingStudent.id);
 
@@ -344,11 +341,14 @@ export default function UploadData() {
       }
 
       const totalProcessed = insertedCount + updatedCount;
-      const ignoredCount = validStudents.length - totalProcessed;
+
+      if (warnings.length > 0) {
+        console.warn('Warnings durante importação:', warnings);
+      }
 
       toast({
         title: "Alunos processados com sucesso",
-        description: `${insertedCount} novos, ${updatedCount} atualizados${ignoredCount > 0 ? `, ${ignoredCount} ignorados` : ''}`,
+        description: `${insertedCount} novos, ${updatedCount} atualizados${warnings.length > 0 ? `. ${warnings.length} avisos (veja console)` : ''}`,
       });
       
       setUploadedData([]);

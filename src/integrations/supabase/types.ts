@@ -16,24 +16,30 @@ export type Database = {
     Tables: {
       courses: {
         Row: {
-          code: string | null
+          code: string
           created_at: string
           id: string
           name: string
+          start_date: string
+          total_semesters: number
           updated_at: string
         }
         Insert: {
-          code?: string | null
+          code: string
           created_at?: string
           id?: string
           name: string
+          start_date?: string
+          total_semesters?: number
           updated_at?: string
         }
         Update: {
-          code?: string | null
+          code?: string
           created_at?: string
           id?: string
           name?: string
+          start_date?: string
+          total_semesters?: number
           updated_at?: string
         }
         Relationships: []
@@ -143,37 +149,37 @@ export type Database = {
       students: {
         Row: {
           course: string | null
+          course_id: string
           created_at: string
           email: string | null
           id: string
           name: string
           student_id: string
-          subject_id: string
         }
         Insert: {
           course?: string | null
+          course_id: string
           created_at?: string
           email?: string | null
           id?: string
           name: string
           student_id: string
-          subject_id: string
         }
         Update: {
           course?: string | null
+          course_id?: string
           created_at?: string
           email?: string | null
           id?: string
           name?: string
           student_id?: string
-          subject_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "students_subject_id_fkey"
-            columns: ["subject_id"]
+            foreignKeyName: "students_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "subjects"
+            referencedRelation: "courses"
             referencedColumns: ["id"]
           },
         ]

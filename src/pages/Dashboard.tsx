@@ -116,27 +116,11 @@ const Dashboard = () => {
         ).length
       }));
 
-      // Performance by subject
-      const subjectGroups = grades.reduce((acc, grade) => {
-        const subjectId = grade.students.subject_id;
-        if (!acc[subjectId]) {
-          acc[subjectId] = {
-            name: grade.students.subjects.name,
-            grades: [],
-            students: new Set()
-          };
-        }
-        acc[subjectId].grades.push(Number(grade.grade));
-        acc[subjectId].students.add(grade.student_id);
-        return acc;
-      }, {} as Record<string, { name: string; grades: number[]; students: Set<string> }>);
-
-      const performanceBySubject = Object.values(subjectGroups).map(subject => ({
-        name: subject.name,
-        average: subject.grades.length > 0 ? 
-          subject.grades.reduce((sum, grade) => sum + grade, 0) / subject.grades.length : 0,
-        students: subject.students.size
-      }));
+      // Performance by subject - simplified since we removed subject join
+      const uniqueStudents = [...new Set(grades.map(g => g.student_id))];
+      const performanceBySubject = [
+        { name: 'Média Geral', average: grades.length > 0 ? grades.reduce((sum, g) => sum + Number(g.grade), 0) / grades.length : 0, students: uniqueStudents.length }
+      ];
 
       // Grades trend by assessment type
       const assessmentGroups = grades.reduce((acc, grade) => {

@@ -18,7 +18,9 @@ import * as XLSX from 'xlsx';
 interface Course {
   id: string;
   name: string;
-  code?: string;
+  code: string;
+  total_semesters: number;
+  start_date: string;
   created_at: string;
   _count?: {
     students: number;
@@ -46,7 +48,9 @@ const Courses = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
-    code: ''
+    code: '',
+    total_semesters: 8,
+    start_date: new Date().toISOString().split('T')[0]
   });
   const [subjectFormData, setSubjectFormData] = useState({
     name: '',
@@ -85,15 +89,13 @@ const Courses = () => {
 
           const subjectIds = subjectsData?.map(s => s.id) || [];
           
-          // Count students in these subjects
-          let studentCount = 0;
-          if (subjectIds.length > 0) {
-            const { data: studentsData } = await supabase
-              .from('students')
-              .select('id')
-              .in('subject_id', subjectIds);
-            studentCount = studentsData?.length || 0;
-          }
+          // Count students in this course directly
+          const { data: studentsData } = await supabase
+            .from('students')
+            .select('id')
+            .eq('course_id', course.id);
+          
+          const studentCount = studentsData?.length || 0;
 
           return {
             ...course,
@@ -137,10 +139,10 @@ const Courses = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
+    if (!formData.name.trim() || !formData.code.trim()) {
       toast({
         title: "Erro de validação",
-        description: "Nome do curso é obrigatório",
+        description: "Nome e código do curso são obrigatórios",
         variant: "destructive",
       });
       return;
@@ -152,7 +154,9 @@ const Courses = () => {
           .from('courses')
           .update({
             name: formData.name.trim(),
-            code: formData.code.trim() || null
+            code: formData.code.trim(),
+            total_semesters: formData.total_semesters,
+            start_date: formData.start_date
           })
           .eq('id', editingCourse.id);
 
@@ -167,7 +171,9 @@ const Courses = () => {
           .from('courses')
           .insert({
             name: formData.name.trim(),
-            code: formData.code.trim() || null
+            code: formData.code.trim(),
+            total_semesters: formData.total_semesters,
+            start_date: formData.start_date
           });
 
         if (error) throw error;
@@ -238,7 +244,9 @@ const Courses = () => {
     setEditingCourse(course);
     setFormData({
       name: course.name,
-      code: course.code || ''
+      code: course.code,
+      total_semesters: course.total_semesters,
+      start_date: course.start_date
     });
     setIsDialogOpen(true);
   };
@@ -269,7 +277,12 @@ const Courses = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', code: '' });
+    setFormData({ 
+      name: '', 
+      code: '', 
+      total_semesters: 8,
+      start_date: new Date().toISOString().split('T')[0]
+    });
     setEditingCourse(null);
     setIsDialogOpen(false);
   };
@@ -560,11 +573,33 @@ const Courses = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="code">Código (opcional)</Label>
+                  <Label htmlFor="code">Código</Label>
                   <Input
                     id="code"
                     value={formData.code}
                     onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="total_semesters">Total de Semestres</Label>
+                  <Input
+                    id="total_semesters"
+                    type="number"
+                    min="1"
+                    value={formData.total_semesters}
+                    onChange={(e) => setFormData(prev => ({ ...prev, total_semesters: parseInt(e.target.value) }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="start_date">Data de Início</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                    required
                   />
                 </div>
                 <div className="flex gap-2 pt-4">
