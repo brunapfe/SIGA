@@ -15,6 +15,9 @@ interface StudentData {
   email: string;
   student_id: string;
   course: string; // Course name or code to link student to course
+  sexo?: string;
+  renda_media?: number;
+  raca?: string;
 }
 
 interface GradeData {
@@ -234,6 +237,9 @@ export default function UploadData() {
         email: String(row['E-mail'] || row.Email || row.email || '').trim(),
         student_id: String(row.Matricula || row.Student_ID || row.student_id || row.matrícula || '').trim(),
         course: String(row.Curso || row.Course || row.course || '').trim(),
+        sexo: String(row.Sexo || row.sexo || row.Sex || row.sex || '').trim() || undefined,
+        renda_media: parseFloat(String(row.Renda || row['Renda Média'] || row.renda_media || row['Renda Media'] || row.Income || '0').replace(',', '.')) || undefined,
+        raca: String(row.Raça || row.Raca || row.raca || row.Race || row.Etnia || row.etnia || '').trim() || undefined
       }));
 
       // Filter out empty records
@@ -298,7 +304,10 @@ export default function UploadData() {
             name: student.name,
             email: student.email || null,
             student_id: student.student_id,
-            course_id: courseId
+            course_id: courseId,
+            sexo: student.sexo || null,
+            renda_media: student.renda_media || null,
+            raca: student.raca || null
           };
         }).filter(Boolean);
 
@@ -330,7 +339,10 @@ export default function UploadData() {
               .update({
                 name: student.name,
                 email: student.email || null,
-                course_id: courseId
+                course_id: courseId,
+                sexo: student.sexo || null,
+                renda_media: student.renda_media || null,
+                raca: student.raca || null
               })
               .eq('id', existingStudent.id);
 

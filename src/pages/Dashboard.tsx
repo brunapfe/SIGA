@@ -16,6 +16,9 @@ interface DashboardData {
   gradeDistribution: Array<{ range: string; count: number }>;
   performanceBySubject: Array<{ name: string; average: number; students: number }>;
   gradesTrend: Array<{ assessment: string; average: number }>;
+  genderDistribution: Array<{ gender: string; count: number }>;
+  raceDistribution: Array<{ race: string; count: number }>;
+  incomeDistribution: Array<{ range: string; count: number }>;
 }
 
 interface Subject {
@@ -35,7 +38,10 @@ const Dashboard = () => {
     averageGrade: 0,
     gradeDistribution: [],
     performanceBySubject: [],
-    gradesTrend: []
+    gradesTrend: [],
+    genderDistribution: [],
+    raceDistribution: [],
+    incomeDistribution: []
   });
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
@@ -70,12 +76,13 @@ const Dashboard = () => {
         return;
       }
 
-      // Fetch students count (agora os alunos estão vinculados aos cursos)
-      const { count: studentsCount, error: studentsError } = await (supabase as any)
+      // Fetch students count with demographic data
+      const { data: allStudents, error: studentsError } = await supabase
         .from('students')
-        .select('*', { count: 'exact', head: true });
+        .select('id, sexo, renda_media, raca');
 
       if (studentsError) throw studentsError;
+      const studentsCount = allStudents?.length || 0;
 
       // Fetch grades with student info (simplificado sem joins profundos)
       const { data: gradesData, error: gradesError } = await (supabase as any)
@@ -130,13 +137,57 @@ const Dashboard = () => {
           (gradesList as number[]).reduce((sum, grade) => sum + grade, 0) / (gradesList as number[]).length : 0
       }));
 
+      // Gender distribution
+      const genderGroups = (allStudents || []).reduce((acc, student) => {
+        const gender = student.sexo || 'Não informado';
+        acc[gender] = (acc[gender] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const genderDistribution = Object.entries(genderGroups).map(([gender, count]) => ({
+        gender,
+        count
+      }));
+
+      // Race distribution
+      const raceGroups = (allStudents || []).reduce((acc, student) => {
+        const race = student.raca || 'Não informado';
+        acc[race] = (acc[race] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const raceDistribution = Object.entries(raceGroups).map(([race, count]) => ({
+        race,
+        count
+      }));
+
+      // Income distribution
+      const incomeRanges = [
+        { range: 'Até 1000', min: 0, max: 1000 },
+        { range: '1000-2000', min: 1000, max: 2000 },
+        { range: '2000-3000', min: 2000, max: 3000 },
+        { range: '3000-5000', min: 3000, max: 5000 },
+        { range: 'Acima de 5000', min: 5000, max: Infinity }
+      ];
+
+      const studentsWithIncome = (allStudents || []).filter(s => s.renda_media != null);
+      const incomeDistribution = incomeRanges.map(range => ({
+        range: range.range,
+        count: studentsWithIncome.filter(student => 
+          Number(student.renda_media) >= range.min && Number(student.renda_media) < range.max
+        ).length
+      }));
+
       setDashboardData({
         totalStudents: studentsCount || 0,
         totalSubjects: selectedSubject === 'all' ? (subjectsData?.length || 0) : 1,
         averageGrade: Number(averageGrade.toFixed(2)),
         gradeDistribution,
         performanceBySubject,
-        gradesTrend
+        gradesTrend,
+        genderDistribution,
+        raceDistribution,
+        incomeDistribution
       });
 
     } catch (error) {
@@ -435,6 +486,154 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Demographic Charts */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-6">Dados Demográficos</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Card className="chart-container">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <div className="p-1 rounded bg-chart-1/20">
+                    <div className="h-4 w-4 rounded-full" style={{backgroundColor: 'hsl(var(--chart-1))'}} />
+                  </div>
+                  Distribuição por Sexo
+                </CardTitle>
+                <CardDescription className="text-base">Quantidade de alunos por sexo</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <Pie
+                      data={dashboardData.genderDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ gender, percent }) => `${gender}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="count"
+                    >
+                      {dashboardData.genderDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))', 
+                        color: 'hsl(var(--popover-foreground))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: 'var(--shadow-elegant)'
+                      }}
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36}
+                      wrapperStyle={{
+                        color: 'hsl(var(--foreground))',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="chart-container">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <div className="p-1 rounded bg-chart-2/20">
+                    <div className="h-4 w-4 rounded-full" style={{backgroundColor: 'hsl(var(--chart-2))'}} />
+                  </div>
+                  Distribuição por Raça/Etnia
+                </CardTitle>
+                <CardDescription className="text-base">Quantidade de alunos por raça/etnia</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <Pie
+                      data={dashboardData.raceDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ race, percent }) => `${race}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="count"
+                    >
+                      {dashboardData.raceDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))', 
+                        color: 'hsl(var(--popover-foreground))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: 'var(--shadow-elegant)'
+                      }}
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36}
+                      wrapperStyle={{
+                        color: 'hsl(var(--foreground))',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="chart-container">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <div className="p-1 rounded bg-chart-3/20">
+                    <BarChart3 className="h-4 w-4" style={{color: 'hsl(var(--chart-3))'}} />
+                  </div>
+                  Distribuição de Renda
+                </CardTitle>
+                <CardDescription className="text-base">Faixas de renda familiar mensal (R$)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={dashboardData.incomeDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis 
+                      dataKey="range" 
+                      tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      angle={-15}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: 'var(--shadow-elegant)'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      fill="hsl(var(--chart-3))" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
