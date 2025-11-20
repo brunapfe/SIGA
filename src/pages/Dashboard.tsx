@@ -508,10 +508,10 @@ const Dashboard = () => {
                     <Pie
                       data={dashboardData.genderDistribution}
                       cx="50%"
-                      cy="50%"
+                      cy="40%"
                       labelLine={false}
                       label={({ gender, percent }) => `${gender}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
+                      outerRadius={80}
                       fill="#8884d8"
                       dataKey="count"
                     >
@@ -529,11 +529,13 @@ const Dashboard = () => {
                       }}
                     />
                     <Legend 
+                      layout="horizontal"
                       verticalAlign="bottom" 
-                      height={36}
+                      align="center"
                       wrapperStyle={{
+                        paddingTop: '20px',
                         color: 'hsl(var(--foreground))',
-                        fontSize: '14px'
+                        fontSize: '12px'
                       }}
                     />
                   </PieChart>
@@ -557,10 +559,10 @@ const Dashboard = () => {
                     <Pie
                       data={dashboardData.raceDistribution}
                       cx="50%"
-                      cy="50%"
+                      cy="40%"
                       labelLine={false}
                       label={({ race, percent }) => `${race}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
+                      outerRadius={80}
                       fill="#8884d8"
                       dataKey="count"
                     >
@@ -578,11 +580,13 @@ const Dashboard = () => {
                       }}
                     />
                     <Legend 
+                      layout="horizontal"
                       verticalAlign="bottom" 
-                      height={36}
+                      align="center"
                       wrapperStyle={{
+                        paddingTop: '20px',
                         color: 'hsl(var(--foreground))',
-                        fontSize: '14px'
+                        fontSize: '12px'
                       }}
                     />
                   </PieChart>
