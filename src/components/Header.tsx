@@ -6,12 +6,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/hooks/useAuth';
-import { BarChart3, LogOut, Menu, BookOpen, Users, Upload, Home, FileText, PieChart } from 'lucide-react';
+import { BarChart3, LogOut, Menu, BookOpen, Users, Upload, Home, FileText, PieChart, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 
 const Header = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -65,6 +67,13 @@ const Header = () => {
           <span className="text-sm text-muted-foreground">
             Bem-vindo, {user?.user_metadata?.full_name || user?.email}
           </span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleSignOut}>
             <LogOut className="h-4 w-4 mr-2" />
             Sair
