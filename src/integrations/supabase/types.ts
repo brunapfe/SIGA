@@ -154,6 +154,9 @@ export type Database = {
           email: string | null
           id: string
           name: string
+          raca: string | null
+          renda_media: number | null
+          sexo: string | null
           student_id: string
         }
         Insert: {
@@ -163,6 +166,9 @@ export type Database = {
           email?: string | null
           id?: string
           name: string
+          raca?: string | null
+          renda_media?: number | null
+          sexo?: string | null
           student_id: string
         }
         Update: {
@@ -172,6 +178,9 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string
+          raca?: string | null
+          renda_media?: number | null
+          sexo?: string | null
           student_id?: string
         }
         Relationships: [

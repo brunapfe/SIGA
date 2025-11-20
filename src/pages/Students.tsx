@@ -55,7 +55,10 @@ const Students = () => {
     name: '',
     email: '',
     student_id: '',
-    course_id: ''
+    course_id: '',
+    sexo: '',
+    renda_media: '',
+    raca: ''
   });
   const [viewingGrades, setViewingGrades] = useState<Student | null>(null);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -127,7 +130,10 @@ const Students = () => {
         name: formData.name,
         email: formData.email || null,
         student_id: formData.student_id,
-        course_id: formData.course_id
+        course_id: formData.course_id,
+        sexo: formData.sexo || null,
+        renda_media: formData.renda_media ? parseFloat(formData.renda_media) : null,
+        raca: formData.raca || null
       };
 
       if (editingStudent) {
@@ -153,7 +159,7 @@ const Students = () => {
         });
       }
 
-      setFormData({ name: '', email: '', student_id: '', course_id: '' });
+      setFormData({ name: '', email: '', student_id: '', course_id: '', sexo: '', renda_media: '', raca: '' });
       setEditingStudent(null);
       setIsDialogOpen(false);
       fetchData();
@@ -172,7 +178,10 @@ const Students = () => {
       name: student.name,
       email: student.email || '',
       student_id: student.student_id,
-      course_id: student.course_id
+      course_id: student.course_id,
+      sexo: (student as any).sexo || '',
+      renda_media: (student as any).renda_media?.toString() || '',
+      raca: (student as any).raca || ''
     });
     setIsDialogOpen(true);
   };
@@ -202,7 +211,7 @@ const Students = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', student_id: '', course_id: '' });
+    setFormData({ name: '', email: '', student_id: '', course_id: '', sexo: '', renda_media: '', raca: '' });
     setEditingStudent(null);
   };
 
@@ -441,6 +450,47 @@ const Students = () => {
                             {course.code} - {course.name}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="sexo">Sexo (opcional)</Label>
+                    <Select value={formData.sexo} onValueChange={(value) => setFormData({ ...formData, sexo: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o sexo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Masculino">Masculino</SelectItem>
+                        <SelectItem value="Feminino">Feminino</SelectItem>
+                        <SelectItem value="Outro">Outro</SelectItem>
+                        <SelectItem value="Prefiro não informar">Prefiro não informar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="renda_media">Renda Média Familiar (opcional)</Label>
+                    <Input
+                      id="renda_media"
+                      type="number"
+                      step="0.01"
+                      value={formData.renda_media}
+                      onChange={(e) => setFormData({ ...formData, renda_media: e.target.value })}
+                      placeholder="Ex: 3500.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="raca">Raça/Etnia (opcional)</Label>
+                    <Select value={formData.raca} onValueChange={(value) => setFormData({ ...formData, raca: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a raça/etnia" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Branca">Branca</SelectItem>
+                        <SelectItem value="Preta">Preta</SelectItem>
+                        <SelectItem value="Parda">Parda</SelectItem>
+                        <SelectItem value="Amarela">Amarela</SelectItem>
+                        <SelectItem value="Indígena">Indígena</SelectItem>
+                        <SelectItem value="Prefiro não informar">Prefiro não informar</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
