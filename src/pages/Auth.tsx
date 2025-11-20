@@ -49,7 +49,7 @@ const Auth = () => {
     } else {
       toast({
         title: 'Login realizado com sucesso!',
-        description: 'Bem-vindo de volta ao Acalytics.',
+        description: 'Bem-vindo de volta ao SIGA.',
       });
       navigate('/');
     }
@@ -137,9 +137,9 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Acalytics</CardTitle>
+          <CardTitle className="text-2xl font-bold">SIGA</CardTitle>
           <CardDescription>
-            Sistema de Análise de Desempenho Acadêmico
+            Sistema Integrado de Gestão Acadêmica
           </CardDescription>
         </CardHeader>
         <CardContent>

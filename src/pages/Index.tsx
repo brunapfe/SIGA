@@ -13,9 +13,9 @@ const Index = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <h1 className="mb-4 text-4xl font-bold">Acalytics</h1>
+          <h1 className="mb-4 text-4xl font-bold">SIGA</h1>
           <p className="text-xl text-muted-foreground mb-6">
-            Sistema de Análise de Desempenho Acadêmico
+            Sistema Integrado de Gestão Acadêmica
           </p>
           <Button onClick={() => window.location.href = '/auth'}>
             Fazer Login
