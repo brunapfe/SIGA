@@ -164,7 +164,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
-              Dashboard Analytics
+              Dashboard Analítico
             </h1>
             <p className="text-lg text-muted-foreground mt-2">Análise completa de desempenho acadêmico</p>
           </div>
