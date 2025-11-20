@@ -229,18 +229,28 @@ export default function UploadData() {
     });
   };
 
+  const capitalizeFirst = (text: string): string => {
+    if (!text) return text;
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  };
+
   const processStudents = async () => {
     setIsProcessing(true);
     try {
-      const studentsToInsert: StudentData[] = uploadedData.map(row => ({
-        name: String(row.Nome || row.Name || row.name || '').trim(),
-        email: String(row['E-mail'] || row.Email || row.email || '').trim(),
-        student_id: String(row.Matricula || row.Student_ID || row.student_id || row.matrícula || '').trim(),
-        course: String(row.Curso || row.Course || row.course || '').trim(),
-        sexo: String(row.Sexo || row.sexo || row.Sex || row.sex || '').trim() || undefined,
-        renda_media: parseFloat(String(row.Renda || row['Renda Média'] || row.renda_media || row['Renda Media'] || row.Income || '0').replace(',', '.')) || undefined,
-        raca: String(row.Raça || row.Raca || row.raca || row.Race || row.Etnia || row.etnia || '').trim() || undefined
-      }));
+      const studentsToInsert: StudentData[] = uploadedData.map(row => {
+        const sexoRaw = String(row.Sexo || row.sexo || row.Sex || row.sex || '').trim();
+        const racaRaw = String(row.Raça || row.Raca || row.raca || row.Race || row.Etnia || row.etnia || '').trim();
+        
+        return {
+          name: String(row.Nome || row.Name || row.name || '').trim(),
+          email: String(row['E-mail'] || row.Email || row.email || '').trim(),
+          student_id: String(row.Matricula || row.Student_ID || row.student_id || row.matrícula || '').trim(),
+          course: String(row.Curso || row.Course || row.course || '').trim(),
+          sexo: sexoRaw ? capitalizeFirst(sexoRaw) : undefined,
+          renda_media: parseFloat(String(row.Renda || row['Renda Média'] || row.renda_media || row['Renda Media'] || row.Income || '0').replace(',', '.')) || undefined,
+          raca: racaRaw ? capitalizeFirst(racaRaw) : undefined
+        };
+      });
 
       // Filter out empty records
       const validStudents = studentsToInsert.filter(student => 
