@@ -491,151 +491,181 @@ const Dashboard = () => {
         {/* Demographic Charts */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold mb-6">Dados Demográficos</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="chart-container">
-              <CardHeader className="pb-6">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <div className="p-1 rounded bg-chart-1/20">
-                    <div className="h-4 w-4 rounded-full" style={{backgroundColor: 'hsl(var(--chart-1))'}} />
-                  </div>
-                  Distribuição por Sexo
-                </CardTitle>
-                <CardDescription className="text-base">Quantidade de alunos por sexo</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <PieChart>
-                    <Pie
-                      data={dashboardData.genderDistribution}
-                      cx="50%"
-                      cy="40%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {dashboardData.genderDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--popover))', 
-                        color: 'hsl(var(--popover-foreground))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        boxShadow: 'var(--shadow-elegant)'
-                      }}
-                    />
-                    <Legend 
-                      layout="horizontal"
-                      verticalAlign="bottom" 
-                      align="center"
-                      wrapperStyle={{
-                        paddingTop: '20px',
-                        color: 'hsl(var(--foreground))',
-                        fontSize: '12px'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+          
+          {/* Gender Distribution */}
+          <Card className="chart-container mb-8">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <div className="p-1 rounded bg-chart-1/20">
+                  <div className="h-4 w-4 rounded-full" style={{backgroundColor: 'hsl(var(--chart-1))'}} />
+                </div>
+                Distribuição por Sexo
+              </CardTitle>
+              <CardDescription className="text-base">Quantidade de alunos por sexo</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={dashboardData.genderDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ gender, percent }) => `${gender}: ${(percent * 100).toFixed(1)}%`}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {dashboardData.genderDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--popover))', 
+                      color: 'hsl(var(--popover-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-elegant)'
+                    }}
+                    formatter={(value: number, name: string) => [
+                      `${value} ${value === 1 ? 'aluno' : 'alunos'}`, 
+                      'Quantidade'
+                    ]}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    formatter={(value: string, entry: any) => 
+                      `${entry.payload.gender} (${entry.payload.count} ${entry.payload.count === 1 ? 'aluno' : 'alunos'})`
+                    }
+                    wrapperStyle={{
+                      color: 'hsl(var(--foreground))',
+                      fontSize: '14px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-            <Card className="chart-container">
-              <CardHeader className="pb-6">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <div className="p-1 rounded bg-chart-2/20">
-                    <div className="h-4 w-4 rounded-full" style={{backgroundColor: 'hsl(var(--chart-2))'}} />
-                  </div>
-                  Distribuição por Raça/Etnia
-                </CardTitle>
-                <CardDescription className="text-base">Quantidade de alunos por raça/etnia</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <PieChart>
-                    <Pie
-                      data={dashboardData.raceDistribution}
-                      cx="50%"
-                      cy="40%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {dashboardData.raceDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--popover))', 
-                        color: 'hsl(var(--popover-foreground))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        boxShadow: 'var(--shadow-elegant)'
-                      }}
-                    />
-                    <Legend 
-                      layout="horizontal"
-                      verticalAlign="bottom" 
-                      align="center"
-                      wrapperStyle={{
-                        paddingTop: '20px',
-                        color: 'hsl(var(--foreground))',
-                        fontSize: '12px'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+          {/* Race Distribution */}
+          <Card className="chart-container mb-8">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <div className="p-1 rounded bg-chart-2/20">
+                  <div className="h-4 w-4 rounded-full" style={{backgroundColor: 'hsl(var(--chart-2))'}} />
+                </div>
+                Distribuição por Raça/Etnia
+              </CardTitle>
+              <CardDescription className="text-base">Quantidade de alunos por raça/etnia</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={dashboardData.raceDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ race, percent }) => `${race}: ${(percent * 100).toFixed(1)}%`}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {dashboardData.raceDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--popover))', 
+                      color: 'hsl(var(--popover-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-elegant)'
+                    }}
+                    formatter={(value: number, name: string) => [
+                      `${value} ${value === 1 ? 'aluno' : 'alunos'}`, 
+                      'Quantidade'
+                    ]}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    formatter={(value: string, entry: any) => 
+                      `${entry.payload.race} (${entry.payload.count} ${entry.payload.count === 1 ? 'aluno' : 'alunos'})`
+                    }
+                    wrapperStyle={{
+                      color: 'hsl(var(--foreground))',
+                      fontSize: '14px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-            <Card className="chart-container">
-              <CardHeader className="pb-6">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <div className="p-1 rounded bg-chart-3/20">
-                    <BarChart3 className="h-4 w-4" style={{color: 'hsl(var(--chart-3))'}} />
-                  </div>
-                  Distribuição de Renda
-                </CardTitle>
-                <CardDescription className="text-base">Faixas de renda familiar mensal (R$)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={dashboardData.incomeDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis 
-                      dataKey="range" 
-                      tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
-                      angle={-15}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--popover))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        boxShadow: 'var(--shadow-elegant)'
-                      }}
-                    />
-                    <Bar 
-                      dataKey="count" 
-                      fill="hsl(var(--chart-3))" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Income Distribution */}
+          <Card className="chart-container">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <div className="p-1 rounded bg-chart-3/20">
+                  <BarChart3 className="h-4 w-4" style={{color: 'hsl(var(--chart-3))'}} />
+                </div>
+                Distribuição de Renda Per Capita
+              </CardTitle>
+              <CardDescription className="text-base">Faixas de renda per capita mensal (R$)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={dashboardData.incomeDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis 
+                    dataKey="range" 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    angle={-20}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--popover))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-elegant)'
+                    }}
+                    formatter={(value: number, name: string) => [
+                      `${value} ${value === 1 ? 'aluno' : 'alunos'}`, 
+                      'Quantidade'
+                    ]}
+                    labelFormatter={(label: string) => `Faixa: ${label}`}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    wrapperStyle={{
+                      paddingTop: '20px',
+                      color: 'hsl(var(--foreground))',
+                      fontSize: '14px'
+                    }}
+                    formatter={() => 'Quantidade de Alunos'}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="hsl(var(--chart-3))" 
+                    radius={[4, 4, 0, 0]}
+                    name="Alunos"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
